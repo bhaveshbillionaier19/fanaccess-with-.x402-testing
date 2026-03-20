@@ -134,7 +134,7 @@ The result is a fan NFT platform where creators publish NFTs and viewers unlock 
 ## 🚀 Deployed Contract
 
 - **Network**: Base Sepolia
-- **Contract Address**: *(to be updated after deployment)*
+- **Contract Address**:0x7Cc5E3043a1cb7118fF2E5610dd3a7208D7F2416
 - **Chain ID**: 84532
 - **RPC URL**: https://sepolia.base.org
 - **Block Explorer**: https://sepolia.basescan.org/
