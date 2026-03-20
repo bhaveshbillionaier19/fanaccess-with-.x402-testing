@@ -10,6 +10,10 @@ const ownershipAbi = [
 const transferEventInterface = new ethers.Interface([
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
 ]);
+const OWNERSHIP_RETRY_ATTEMPTS = 6;
+const OWNERSHIP_RETRY_DELAY_MS = 1500;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getNftContract = () => {
   if (!env.NFT_CONTRACT_ADDRESS || !ethers.isAddress(env.NFT_CONTRACT_ADDRESS)) {
@@ -108,26 +112,45 @@ const resolveMintedTokenFromTransaction = async ({
   };
 };
 
-const assertTokenOwnership = async (tokenId, expectedOwner) => {
+const assertTokenOwnership = async (
+  tokenId,
+  expectedOwner,
+  {
+    attempts = OWNERSHIP_RETRY_ATTEMPTS,
+    delayMs = OWNERSHIP_RETRY_DELAY_MS,
+  } = {},
+) => {
   const contract = getNftContract();
+  const normalizedExpectedOwner = ethers.getAddress(expectedOwner);
 
-  let owner;
-  try {
-    owner = await contract.ownerOf(BigInt(tokenId));
-  } catch (_error) {
-    throw new HttpError(400, "NFT token does not exist on-chain.", {
-      code: "TOKEN_NOT_FOUND_ON_CHAIN",
-    });
-  }
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const owner = await contract.ownerOf(BigInt(tokenId));
 
-  if (ethers.getAddress(owner) !== ethers.getAddress(expectedOwner)) {
-    throw new HttpError(
-      403,
-      "Wallet does not own the token being registered in the paywall catalog.",
-      {
-        code: "TOKEN_OWNERSHIP_MISMATCH",
-      },
-    );
+      if (ethers.getAddress(owner) !== normalizedExpectedOwner) {
+        throw new HttpError(
+          403,
+          "Wallet does not own the token being registered in the paywall catalog.",
+          {
+            code: "TOKEN_OWNERSHIP_MISMATCH",
+          },
+        );
+      }
+
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+
+      if (attempt === attempts) {
+        throw new HttpError(400, "NFT token does not exist on-chain.", {
+          code: "TOKEN_NOT_FOUND_ON_CHAIN",
+        });
+      }
+
+      await delay(delayMs);
+    }
   }
 };
 
