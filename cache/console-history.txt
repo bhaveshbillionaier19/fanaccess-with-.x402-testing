@@ -1,0 +1,9 @@
+console.log(hre.ethers);
+const hre = (await import("hardhat")).default;
+const Factory = await ethers.getContractFactory("NFTDonation");
+const { ethers } = await import("hardhat");
+const Factory = await ethers.getContractFactory("NFTDonation");
+const { ethers } = await import("hardhat");
+await contract.getAddress();
+const contract = await Factory.deploy();
+const Factory = await ethers.getContractFactory("NFTDonation");
