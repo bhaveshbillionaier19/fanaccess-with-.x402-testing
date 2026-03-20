@@ -13,13 +13,32 @@ import paymentRoutes from "./routes/payment.js";
 import { logger } from "./utils/logger.js";
 
 const app = express();
+const normalizeOrigin = (origin) => origin.replace(/\/$/, "");
+const allowedOrigins =
+  env.FRONTEND_ORIGIN === "*"
+    ? "*"
+    : env.FRONTEND_ORIGIN.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+        .map(normalizeOrigin);
 
 app.use(
   cors({
-    origin:
-      env.FRONTEND_ORIGIN === "*"
-        ? true
-        : env.FRONTEND_ORIGIN.split(",").map((origin) => origin.trim()),
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins === "*") {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+    },
     credentials: true,
   }),
 );
